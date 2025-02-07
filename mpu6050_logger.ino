@@ -51,6 +51,33 @@ void createCSVHeader()
         Serial.println("Feil ved åpning av fil!");
     }
 }
+
+// Skriver sensorverdier til SD-kort i CSV-format
+void logDataToSD(unsigned long currentTime, int16_t ax, int16_t ay, int16_t az, int16_t gx, int16_t gy, int16_t gz)
+{
+    File dataFile = SD.open("sensor_data.csv", FILE_WRITE);
+    if (dataFile)
+    {
+        dataFile.print(currentTime);
+        dataFile.print(",");
+        dataFile.print(ax);
+        dataFile.print(",");
+        dataFile.print(ay);
+        dataFile.print(",");
+        dataFile.print(az);
+        dataFile.print(",");
+        dataFile.print(gx);
+        dataFile.print(",");
+        dataFile.print(gy);
+        dataFile.print(",");
+        dataFile.println(gz);
+        dataFile.close();
+    }
+    else
+    {
+        Serial.println("Feil ved åpning av fil for skriving!");
+    }
+}
 */
 
 // Leser akselerometer- og gyroskopdata fra MPU6050
@@ -92,5 +119,8 @@ void loop()
     readSensorData(ax, ay, az, gx, gy, gz); // Leser sensorverdier
     printSensorDataCSV(millis(), ax, ay, az, gx, gy, gz); // Skriver til Serial Monitor i CSV-format
     
+    // logDataToSD(millis(), ax, ay, az, gx, gy, gz); // Kommentert ut for nå
+    
     delay(500); // Vent 500 ms før neste måling
 }
+
