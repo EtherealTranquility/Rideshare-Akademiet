@@ -1,30 +1,41 @@
 # Rideshare-Akademiet
 
 ## Prosjektbeskrivelse
-Dette prosjektet handler om å samle og analysere data fra en rakett ved hjelp av en Arduino-enhet. Dataene skal enten lagres på et SD-kort eller sendes via rakettens antenne til bakken, for deretter å bli analysert og visualisert i Python. Den nøyaktige fremgangsmåten for payloaden er fortsatt usikker.
 
-## Hva må gjøres/problemstillinger
-1. **Arduino-programmering:**
-   - Skriv Arduino-koden for å samle data fra sensorer under rakettens oppskyting.
-   - Implementer koding for å lagre dataene på et SD-kort eller sende dem via rakettens antenne til bakken.
+Rideshare-Akademiet-prosjektet har som mål å samle og analysere data fra en rakett ved hjelp av en Arduino-enhet. Dataene skal enten lagres på et SD-kort eller sendes via rakettens antenne til bakken, hvor de vil bli analysert og visualisert med Python. Det er fortsatt usikkerhet rundt hvordan payloaden skal implementeres, men målet er å få oversikt over rakettens oppførsel under oppskyting og nedstigning.
 
-2. **Lagring av data:**
-   - Alternativ 1: Lagre dataene på et **SD-kort**. Definer hvilket format dataene skal lagres i (f.eks. CSV, JSON).
-   - Alternativ 2: Bruk rakettens **antenne** for å sende dataene til bakken i sanntid, og ta imot dataene med en mottaker.
+## Hva må gjøres / Problemstillinger
 
-3. **Format på lagrede data:**
-   - Definer et passende format for lagring av dataene, for eksempel:
-     - **CSV-format** for lett eksport til regneark.
-     - **JSON-format** for lettere struktur og lesbarhet.
+1. **Arduino-programmering**
+	•	Sensorer: Skriv Arduino-kode som samler data fra ulike sensorer under rakettens oppskyting.
+	•	Dataoverføring: Implementer funksjonalitet for å lagre dataene på et SD-kort eller sende dem til bakken via rakettens antenne.
 
-4. **Oppstart av kortet:**
-   - Skriv en mekanisme for hvordan kortet skal starte, f.eks. automatisk ved tilkobling til strøm eller etter en bestemt tid (f.eks. et timer-trigger).
+2. **Lagring av data**
+	•	Alternativ 1: Lagring på SD-kort
+	•	Definer hvordan dataene skal lagres (f.eks. CSV eller JSON-format).
+	•	Alternativ 2: Sanntidsoverføring via antenne
+	•	Bruk rakettens antenne for å sende dataene til bakken under oppskytingen, og ta imot disse dataene med en mottaker.
 
-5. **Python-datavisualisering:**
-   - Lag et Python-program som kan importere og visualisere de lagrede dataene fra SD-kortet eller antennemottakeren.
-   - Visualiser dataene i form av grafer for å analysere rakettens oppskytning.
+3. **Format på lagrede data**
+	•	Velg et passende format for lagring og videre analyse:
+	•	CSV: Lett å eksportere til regneark og bruke i databehandlingsverktøy.
+	•	JSON: Lett tilgjengelig og strukturert, ideelt for bruk med Python for videre analyse.
 
-## Mål for prosjektet:
-- Samle data under rakettens oppskyting.
-- Lagring og analyse av data på bakken etter oppskyting.
-- Visualisere data for å få innsikt i rakettens oppførsel under oppskytning og nedstigning.
+4. **Oppstart av kortet**
+	•	Lag en mekanisme for å starte SD-kortet, for eksempel:
+	•	Automatisk oppstart ved tilkobling til strøm.
+	•	En timer-trigger for oppstart etter en viss tid.
+
+5. **Python-datavisualisering**
+	•	Lag et Python-program for å importere og visualisere de lagrede dataene fra SD-kortet eller antennemottakeren.
+	•	Visualiser dataene med grafer for å analysere rakettens oppførsel under oppskyting og nedstigning.
+
+6. **Sanntidsvisualisering**
+	•	Alternativ til lagring og etteranalyse: Visualiser dataene i sanntid mens raketten er i luften.
+	•	Bruk dataene som sendes via rakettens antenne til bakken for å lage en live grafisk fremstilling av rakettens oppførsel under oppskyting og nedstigning.
+
+## Mål for prosjektet
+	•	Datainnsamling: Samle relevante data under rakettens oppskyting.
+	•	Lagring og analyse: Lagring av dataene og videre analyse etter oppskyting.
+	•	Sanntidsvisualisering: Muliggjør visualisering av dataene i sanntid for å overvåke rakettens status.
+	•	Datavisualisering: Visualisere de innsamlede dataene etter oppskyting for å få innsikt i rakettens oppførsel.
