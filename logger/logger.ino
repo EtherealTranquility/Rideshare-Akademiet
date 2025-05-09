@@ -28,17 +28,7 @@ unsigned long startTime = 0;
 // Liftoff!
 bool airborne = false;
 
-// Stopper programmet helt og skriver ut en feilmelding til Serial Monitor
-void hardStop(const char* error_message)
-{
-    if (ENABLE_SERIAL_OUTPUT)
-    {
-        Serial.println(error_message);
-    }
-    while (true) {} // Fryser programmet
-}
-
-// setup() kjøres én gang når Arduino får strøm eller resettes
+// setup() kjøres én gang når Arduino får strøm eller resettes, dette er "entry pointet" til programmet
 void setup()
 {
     Serial.begin(BAUD_RATE); // Starter seriell kommunikasjon med PC-en for debugging og dataoverføring
@@ -50,6 +40,16 @@ void setup()
     initializeSD();
     createCSVHeader()
     */
+}
+
+// Stopper programmet helt og skriver ut en feilmelding til Serial Monitor
+void hardStop(const char* error_message)
+{
+    if (ENABLE_SERIAL_OUTPUT)
+    {
+        Serial.println(error_message);
+    }
+    while (true) {} // Fryser programmet
 }
 
 // Setter opp I2C-kommunikasjon og sjekker at MPU6050 er riktig tilkoblet, gir feilmelding dersom det mislykkes
