@@ -5,16 +5,17 @@
 #include <math.h>
 
 // Konfigurerbare verdier
-#define BAUD_RATE 115200 // Angir hastigheten på seriell kommunikasjon (baud, "bits per second"). Komponentene våre skal støtte opptil 1Mbps
-#define CHIP_SELECT_PIN 4 // Chip select (CS) pin for SD-kortet
-#define SD_MAX_RETRIES 10 // Antall ganger det skal forsøkes å initialisere SD-kortet før hard stopp
+#define BAUD_RATE 9600 // Angir hastigheten på seriell kommunikasjon (baud, "bits per second"). Komponentene våre skal støtte opptil 1Mbps
+#define CHIP_SELECT_PIN 10 // Chip select (CS) pin for SD-kortet
+#define SD_MAX_RETRIES 20 // Antall ganger det skal forsøkes å initialisere SD-kortet før hard stopp
 #define SAMPLE_DELAY 100 // 10ms = 100Hz
 #define ACCEL_SENSITIVITY 2048.0 // Følsomhet for akselerometer (LSB/g)
 #define GYRO_SENSITIVITY 131.0 // Følsomhet for gyroskop (LSB/°/s)
 #define GRAVITY 9.819
-#define DECIMALS 3 // Desimalpresisjon for utskrift og logging
+#define DECIMALS 10 // Desimalpresisjon for utskrift og logging
 #define ENABLE_SERIAL_OUTPUT true // Global bryter for å aktivere/deaktivere seriell utskrift (for debugging eller logging til PC)
 #define LIFTOFF_THRESHOLD_G 1.5  // Antall g som kreves på Z-aksen for å starte logging
+#define FILENAME "data.txt" 
 
 // Opprett objekt for MPU6050
 MPU6050 mpu;
@@ -28,6 +29,8 @@ unsigned long startTime = 0;
 // Liftoff!
 bool airborne = false;
 
+File dataFile;
+
 // setup() kjøres én gang når Arduino får strøm eller resettes, dette er "entry pointet" til programmet
 void setup()
 {
@@ -36,10 +39,8 @@ void setup()
     mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_16); // Setter akselerometerets måleområde til ±16g
     mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_250);  // Setter gyroskopets måleområde til ±250°/s
     setOffsets();
-    /*
     initializeSD();
-    createCSVHeader()
-    */
+    createCSVHeader();
 }
 
 // Stopper programmet helt og skriver ut en feilmelding til Serial Monitor
@@ -49,7 +50,10 @@ void hardStop(const char* error_message)
     {
         Serial.println(error_message);
     }
-    while (true) {} // Fryser programmet
+    while (true) // Fryser programmet
+    {
+        Serial.println("Kritisk feil!");
+    }
 }
 
 // Setter opp I2C-kommunikasjon og sjekker at MPU6050 er riktig tilkoblet, gir feilmelding dersom det mislykkes
@@ -85,6 +89,10 @@ void setOffsets()
 // Denne funksjonen kobler til SD-kortet, og prøver å koble til flere ganger hvis tilkoblingen mislykkes
 void initializeSD()
 {
+    /* ChatGPT foreslo og teste koden etter å kalle disse to funksjonene, har ikke fått prøvd enda.
+    pinMode(CHIP_SELECT_PIN, OUTPUT); 
+    digitalWrite(CHIP_SELECT_PIN, HIGH);
+    */
     int attempts = SD_MAX_RETRIES;
     while (!SD.begin(CHIP_SELECT_PIN)) // Prøv flere ganger til SD-kortet er tilgjengelig
     {
@@ -108,18 +116,26 @@ void initializeSD()
 // Oppretter CSV-header hvis filen er ny, eller sletter den eksisterende og skriver header på nytt, gir feilmelding dersom det mislykkes
 void createCSVHeader()
 {
-    SD.remove("sensor_data.csv"); // Sletter eksisterende fil hvis den finnes, for å starte med en tom fil
-    File dataFile = SD.open("sensor_data.csv", FILE_WRITE); // Åpner filen i WRITE-modus, dette overskriver eksisterende innhold
+    // SD.remove("sensor_data.csv"); // Sletter eksisterende fil hvis den finnes, for å starte med en tom fil
+    dataFile = SD.open(FILENAME, FILE_WRITE); // Åpner filen i WRITE-modus, dette overskriver eksisterende innhold
     if (dataFile)
     {
         dataFile.println("time(ms),ax,ay,az,gx,gy,gz"); // Skriver header for CSV-filen
         dataFile.close();
+        while (1)
+        {
+            Serial.print("FILEN ER LAGET!");
+        }
     }
     else
     {
-        hardStop("Feil ved åpning av fil!");
+        while (true) {
+            Serial.println("Feil ved åpning av fil!");
+        }
     }
 }
+
+int i = 5000;
 
 // Hovedløkken som kontinuerlig leser og skriver sensorverdier (kjører etter setup-funksjonen)
 void loop()
@@ -129,7 +145,16 @@ void loop()
     {
         printSensorDataCSV();
     }
+    /*
+    logDataToSD();
+    i--;
+    if (i == 0)
+    {
+        return;
+    }
+    */
     
+    /*
     float effective_az = az - 1.0; // Beregner effektiv akselerasjon på Z-aksen, justert for 1g
     if (effective_az > LIFTOFF_THRESHOLD_G)) // Sjekker om den effektive akselerasjonen er større enn terskelen for liftoff
     {
@@ -143,6 +168,7 @@ void loop()
         }
 
     }
+    */
     
     delay(SAMPLE_DELAY);
 }
@@ -197,7 +223,7 @@ void logDataToSD()
     NB: Filen åpnes og lukkes hver gang, noe som gir lav ytelse og høyere risiko for datakorrupsjon.
     Potensiell løsning: Gjør `File dataFile` til en global variabel som åpnes én gang etter liftoff og lukkes etter landing. 
     */
-    File dataFile = SD.open("sensor_data.csv", FILE_WRITE);
+    File dataFile = SD.open(FILENAME, FILE_WRITE);
     if (dataFile)
     {
         dataFile.print(millis() - startTime); dataFile.print(",");
