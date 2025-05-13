@@ -137,7 +137,7 @@ void createCSVHeader()
     }
 }
 
-// Hovedløkken som kontinuerlig leser og skriver sensorverdier (kjører etter setup-funksjonen)
+// Hovedløkken som kontinuerlig leser og skriver sensorverdier (kjører etter setup-funksjonen automatisk)
 void loop()
 {   
     readSensorData();
