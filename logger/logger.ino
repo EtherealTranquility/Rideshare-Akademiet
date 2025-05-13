@@ -20,19 +20,27 @@
 #define TEMP_OFFSET 36.53          // Nullpunkt (fra datasheet)
 #define GRAVITY 9.819
 
-// Opprett objekt for MPU6050
-MPU6050 mpu;
+// Globale verdier
+MPU6050 mpu;                        // Opprett objekt for MPU6050
+File dataFile;                      // Filhåndtering for SD-kort
+float ax, ay, az, gx, gy, gz, temp; // Globale verdier for akselerometerdata, gyroskopdata og tempratur (°C)
+unsigned long startTime = 0;        // Tidspunktet loggingen starter
+unsigned long lastSampleTime = 0;   // Tidspunktet for siste sample
 
-// Filhåndtering for SD-kort
-File dataFile;
-
-// Globale verdier for akselerometerdata, gyroskopdata og tempratur (°C)
-float ax, ay, az, gx, gy, gz, temp;
-
-// Tidspunktet loggingen starter
-unsigned long startTime = 0; 
+// Venter aktivt til neste måleintervall er nådd (basert på SAMPLE_INTERVAL).
+// Bruker "busy wait" i stedet for delay() for å oppnå jevnere sampling, spesielt ved høye frekvenser.
+void waitForNextSample()
+{
+    unsigned long currentMillis = millis(); // Leser nåværende tid i millisekunder
+    while (currentMillis - lastSampleTime < SAMPLE_INTERVAL) // Venter i en løkke til det har gått nok tid siden forrige måling
+    {
+        currentMillis = millis(); // Oppdaterer tid for å sjekke igjen
+    }
+    lastSampleTime = currentMillis; // Oppdaterer tidspunkt for siste sample
+}
 
 // Stopper programmet helt og skriver ut en feilmelding til Serial Monitor
+// Denne funksjonen er stygg, men det for gå.
 void hardStop(const char* error_message)
 {
     if (ENABLE_SERIAL_OUTPUT)
@@ -40,17 +48,6 @@ void hardStop(const char* error_message)
         Serial.println(error_message);
     }
     for (;;) {;} // Fryser programmet
-}
-
-unsigned long lastSampleTime = 0; // Tidspunktet for siste sample
-void waitForNextSample() // Sjekker om det har gått nok tid (SAMPLE_INTERVAL) siden siste sample.
-{
-    unsigned long currentMillis = millis();
-    if (currentMillis - lastSampleTime >= SAMPLE_INTERVAL) // Vent til SAMPLE_INTERVAL har passert før neste sample.
-    {
-        lastSampleTime = currentMillis; // Oppdaterer tiden for siste sample
-    }
-    // Hvis mer tid enn SAMPLE_INTERVAL har gått, fortsetter vi med neste iterasjon
 }
 
 // setup() kjøres én gang når Arduino får strøm eller resettes, dette er "entry pointet" til programmet
