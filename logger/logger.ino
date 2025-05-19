@@ -8,17 +8,17 @@
 #define FILENAME "data.csv" 
 #define BAUD_RATE 9600             // Angir hastigheten på seriell kommunikasjon (baud, "bits per second"). Komponentene våre skal støtte opptil 1Mbps
 #define CHIP_SELECT_PIN 10         // Chip select (CS) pin for SD-kortet
-#define SD_MAX_RETRIES 20          // Antall ganger det skal forsøkes å initialisere SD-kortet før hard stopp
-#define SAMPLE_INTERVAL 10         // 10ms = 100Hz
-#define CHECK_LIFTOFF_DELAY 100    // Tiden i millisekunder mellom hver sjekk av akselerasjon for oppskytning
+#define SD_MAX_RETRIES 100         // Antall ganger det skal forsøkes å initialisere SD-kortet før hard stopp
+#define FILE_MAX_RETRIES 100       // Antall forsøk på å åpne filen før feilmelding
+#define SAMPLE_INTERVAL 10         // Tiden i millisekunder mellom hver logging. 10ms = 100Hz
+#define CHECK_LIFTOFF_DELAY 50     // Tiden i millisekunder mellom hver sjekk av akselerasjon for oppskytning
 #define ACCEL_SENSITIVITY 2048.0   // Følsomhet for akselerometer (LSB/g)
 #define GYRO_SENSITIVITY 131.0     // Følsomhet for gyroskop (LSB/°/s)
-#define DECIMALS 5                 // Desimalpresisjon for utskrift og logging
-#define ENABLE_SERIAL_OUTPUT true  // Global bryter for å aktivere/deaktivere seriell utskrift (for debugging eller logging til PC)
-#define LIFTOFF_THRESHOLD_G 0.5    // Antall g som kreves på Z-aksen for å starte logging
+#define DECIMALS 3                 // Desimalpresisjon for utskrift og logging
+#define ENABLE_SERIAL_OUTPUT false  // Global bryter for å aktivere/deaktivere seriell utskrift (for debugging eller logging til PC) NB! DENNE SKAL VÆRE FALSE VED OPPSKYTNING ELLER GÅR DEN I EN UENDELIG LOOP DER DEN SØKER ETTER KOBLING MED EN PC!
+#define LIFTOFF_THRESHOLD_G 2      // Antall g som kreves på Z-aksen for å starte logging
 #define TEMP_SENSITIVITY 340.0     // LSB per grad Celsius (fra datasheet)
 #define TEMP_OFFSET 36.53          // Nullpunkt (fra datasheet)
-#define GRAVITY 9.819
 
 // Globale verdier
 MPU6050 mpu;                        // Opprett objekt for MPU6050
@@ -37,17 +37,6 @@ void waitForNextSample()
         currentMillis = millis(); // Oppdaterer tid for å sjekke igjen
     }
     lastSampleTime = currentMillis; // Oppdaterer tidspunkt for siste sample
-}
-
-// Stopper programmet helt og skriver ut en feilmelding til Serial Monitor
-// Denne funksjonen er stygg, men det for gå.
-void hardStop(const char* error_message)
-{
-    if (ENABLE_SERIAL_OUTPUT)
-    {
-        Serial.println(error_message);
-    }
-    for (;;) {;} // Fryser programmet
 }
 
 // setup() kjøres én gang når Arduino får strøm eller resettes, dette er "entry pointet" til programmet
@@ -70,17 +59,21 @@ void setup()
 void initializeMPU()
 {
     Wire.begin(); // Initialiserer I2C-kommunikasjon for å koble til sensorer og hente data
+
     mpu.initialize();
-    if (mpu.testConnection())
+    while (!mpu.testConnection())
     {
+        mpu.initialize(); // Må kalles hver gang
         if (ENABLE_SERIAL_OUTPUT)
         {
-            Serial.println("MPU6050 tilkoblet!");
+            Serial.println("MPU6050 ikke funnet. Prøver på nytt...");
         }
+        delay(1000); // Unngå at den spammer for mye
     }
-    else
+
+    if (ENABLE_SERIAL_OUTPUT)
     {
-        hardStop("Kunne ikke koble til MPU6050!");
+        Serial.println("MPU6050 tilkoblet!");
     }
 }
 
@@ -107,7 +100,11 @@ void initializeSD()
         attempts--;
         if (!attempts)
         {
-            hardStop("Kunne ikke initialisere SD-kortet etter flere forsøk.");
+            if (ENABLE_SERIAL_OUTPUT)
+            {
+                Serial.println("Kunne ikke initialisere SD-kortet etter flere forsøk.");
+                return;
+            }           
         }
         if (ENABLE_SERIAL_OUTPUT)
         {
@@ -121,21 +118,45 @@ void initializeSD()
     }
 }
 
-// Oppretter CSV-header hvis filen er ny, eller sletter den eksisterende og skriver header på nytt, gir feilmelding dersom det mislykkes
 void createCSVHeader()
 {
-    SD.remove(FILENAME); // Sletter filen hvis den finnes
-    dataFile = SD.open(FILENAME, FILE_WRITE); // Åpner filen på nytt – nå er den tom
-    if (dataFile)
+    // SD.remove(FILENAME); // <- valgfri sletting, fortsatt kommentert ut
+    int attempts = FILE_MAX_RETRIES;
+    while (attempts > 0)
     {
-        dataFile.println("time(ms),ax,ay,az,gx,gy,gz,temp"); // Skriver header for CSV-filen
-        dataFile.close();
+        dataFile = SD.open(FILENAME, FILE_WRITE);
+
+        if (dataFile)
+        {
+            dataFile.println("time(ms),ax,ay,az,gx,gy,gz,temp");
+            dataFile.close();
+
+            if (ENABLE_SERIAL_OUTPUT)
+            {
+                Serial.println("CSV-header skrevet til fil.");
+            }
+            return; // Ferdig
+        }
+        else
+        {
+            if (ENABLE_SERIAL_OUTPUT)
+            {
+                Serial.print("Feil ved åpning av fil. Prøver igjen");
+            }
+
+            delay(1000); // Vent før neste forsøk
+            attempts--;
+        }
     }
-    else
+
+    // Hvis alle forsøk feiler
+    if (ENABLE_SERIAL_OUTPUT)
     {
-        hardStop("Feil ved åpning av fil!");
+        Serial.println("Kunne ikke skrive header til fil etter flere forsøk.");
+        Serial.println("Logger deaktiveres.");
     }
 }
+
 
 // Hovedløkken som kontinuerlig leser og skriver sensorverdier (kjører etter setup-funksjonen automatisk)
 void loop()
@@ -154,7 +175,7 @@ void loop()
             Serial.print("Logger til SD-kort. LIFTOFF!\n");
         }
         startTime = millis();
-        while (1) // TODO: Legg til betingelse for når loggingen skal stoppes (f.eks. landing, tidsgrense eller ekstern trigger)
+        while (true) // TODO: Legg til betingelse for når loggingen skal stoppes (f.eks. landing, tidsgrense eller ekstern trigger)
         {
             readSensorData();
             logDataToSD();
